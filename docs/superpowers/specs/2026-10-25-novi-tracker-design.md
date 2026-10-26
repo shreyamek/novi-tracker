@@ -1,6 +1,6 @@
-# Novi base: design
+# Novi Tracker: design
 
-Name: `novi`. Status: draft for Shreya's review, 2026-10-25.
+Name: `novi-tracker`. Status: draft for Shreya's review, 2026-10-25.
 
 ## Purpose
 
@@ -25,7 +25,7 @@ No hosted service, accounts or sync. No auto-submit. No sharing of one person's 
 ## Architecture
 
 ```
-novi/
+novi-tracker/
   .claude/commands/   /setup /refresh /tailor /apply /update (agent instructions)
   app/                local web app: Python stdlib server + static JS/CSS
     core/             server, storage, auth-free localhost binding, helpers
