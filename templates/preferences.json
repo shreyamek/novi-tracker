@@ -1,0 +1,18 @@
+{
+  "target_roles": [],
+  "field": "",
+  "level": "",
+  "locations": [],
+  "remote": "any",
+  "relocate": false,
+  "pay_floor": null,
+  "dealbreakers": [],
+  "start_date": "",
+  "work_auth": "",
+  "sponsorship_needed": false,
+  "tailoring": "standard",
+  "apply_mode": "off",
+  "fill_demographics": false,
+  "fit_threshold": 8.0,
+  "search_goals": ""
+}
