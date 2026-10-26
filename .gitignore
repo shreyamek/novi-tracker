@@ -1,0 +1,8 @@
+# everything personal lives in me/ and never gets committed
+me/
+*.local.*
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.DS_Store
