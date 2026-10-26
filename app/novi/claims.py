@@ -2,8 +2,8 @@
 
 Deterministic on purpose: the /tailor command runs this on every draft. Stdlib only.
 
-- unsupported_claims: numbers, percentages, dollar figures and known tools in the document
-  that do not appear in the profile text.
+- unsupported_claims: numbers, percentages, multipliers (3x), dollar figures, known tools, and
+  capitalised words in the document that do not appear in the profile text.
 - locked_fields_changed: document lines (EMPLOYER / TITLE / DATES / DEGREE fields) whose
   values are not in the profile's employer, title, date and degree lists.
 
@@ -17,7 +17,7 @@ from pathlib import Path
 
 KNOWN_TOOLS = [
     # languages
-    "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "Golang", "Rust", "Ruby", "PHP",
+    "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "Golang", "Go", "R", "Rust", "Ruby", "PHP",
     "Swift", "Kotlin", "Scala", "Perl", "Bash", "PowerShell", "MATLAB", "SAS", "SPSS", "Stata",
     "SQL", "HTML", "CSS", "Dart", "Elixir", "Haskell", "Lua", "Objective-C",
     # frameworks and libraries
@@ -36,12 +36,28 @@ KNOWN_TOOLS = [
     "Notion", "Stata", "Qualtrics",
 ]
 
+# Tools matched exactly as written: "Go" and "R" must be capitalised standalone words.
+CASE_SENSITIVE_TOOLS = {"Go", "R"}
+
 _NUMBER = re.compile(
     r"(?<![A-Za-z0-9_])\$?\d+(?:,\d{3})*(?:\.\d+)?"
-    r"(?:\s?(?:%|percent\b|million\b|billion\b|thousand\b|[kKmMbB](?![A-Za-z])))?"
+    r"(?:\s?(?:%|percent\b|million\b|billion\b|thousand\b|[kKmMbB](?![A-Za-z])|[xX](?![A-Za-z])))?"
     r"(?![A-Za-z0-9])"
 )
+_WORD = re.compile(r"(?<![A-Za-z0-9_])[A-Z][A-Za-z0-9+#]*(?:[.\-][A-Za-z0-9+#]+)*(?![A-Za-z0-9_])")
 _SUFFIX_CANON = {"percent": "%", "million": "m", "billion": "b", "thousand": "k"}
+
+# Common sentence-opening words and headings. The general check never flags these.
+_STOPLIST = frozenset(w.casefold() for w in """
+    The I My A An And Or But So If As In On At For With To Of By From Into Over Across Through
+    During While When Where Who Which What How This That These Those Our Their His Her Its We You
+    They He She It Also All Each Dear Sincerely Thank Hiring Summary Experience Skills Education
+    Projects Profile Resume Employer Title Dates Degree Led Built Managed Wrote Reduced Cut Increased
+    Designed Developed Created Implemented Launched Owned Delivered Improved Drove Analyzed Automated
+    Coordinated Supported Partnered Mentored Achieved Served Maintained Established Produced Presented
+    Trained Simplified Streamlined Scaled Migrated Used Helped Spearheaded Architected Optimized
+    Tracked Ran Set Made Grew Saved Reported Shipped Worked Hired Answered Handled Took Held
+""".split())
 
 
 def _normalize_number(token: str) -> str:
@@ -52,15 +68,40 @@ def _normalize_number(token: str) -> str:
 
 
 def _tool_pattern(tool: str) -> re.Pattern[str]:
-    return re.compile(r"(?<![A-Za-z0-9])" + re.escape(tool) + r"(?![A-Za-z0-9])", re.IGNORECASE)
+    flags = 0 if tool in CASE_SENSITIVE_TOOLS else re.IGNORECASE
+    return re.compile(r"(?<![A-Za-z0-9])" + re.escape(tool) + r"(?![A-Za-z0-9])", flags)
+
+
+def _in_text(term: str, text: str) -> bool:
+    """Whole-word, case-insensitive presence of term in text."""
+    return re.search(r"(?<![A-Za-z0-9])" + re.escape(term) + r"(?![A-Za-z0-9])", text, re.IGNORECASE) is not None
+
+
+def _name_words(profile_text: str) -> set[str]:
+    """Words of the profile's first heading (the person's name). They are never flagged."""
+    for line in profile_text.splitlines():
+        if line.startswith("# "):
+            return {w.casefold() for w in _WORD.findall(line)}
+    return set()
+
+
+def _sentence_start(doc_text: str, pos: int) -> bool:
+    before = doc_text[:pos].rstrip(" \t\"'(-*•")
+    return before == "" or before[-1] in ".!?:;\n"
 
 
 def unsupported_claims(doc_text: str, profile_text: str) -> list[str]:
-    """Return the numbers and known tools in doc_text that do not occur in profile_text, in order."""
+    """Return the numbers, tools and capitalised words in doc_text that do not occur in profile_text, in order.
+
+    Capitalised words are checked one at a time, so "Spring Boot" is flagged only when "Spring" or
+    "Boot" is missing from the profile. Sentence-opening stop words and sentence-initial -ed/-ing verb
+    forms are skipped.
+    """
     profile_numbers = {_normalize_number(m.group()) for m in _NUMBER.finditer(profile_text)}
     profile_tools = {t.lower() for t in KNOWN_TOOLS if _tool_pattern(t).search(profile_text)}
+    name_words = _name_words(profile_text)
 
-    found: list[tuple[int, str, str]] = []  # (position, text as written, key)
+    found: list[tuple[int, str, str]] = []  # (position, text as written, dedupe key)
     for m in _NUMBER.finditer(doc_text):
         key = _normalize_number(m.group())
         if key not in profile_numbers:
@@ -69,7 +110,16 @@ def unsupported_claims(doc_text: str, profile_text: str) -> list[str]:
         if tool.lower() in profile_tools:
             continue
         for m in _tool_pattern(tool).finditer(doc_text):
-            found.append((m.start(), m.group(), "tool:" + tool.lower()))
+            found.append((m.start(), m.group(), "term:" + m.group().casefold()))
+    for m in _WORD.finditer(doc_text):
+        word = m.group()
+        low = word.casefold()
+        if low in _STOPLIST or low in name_words:
+            continue
+        if len(low) > 4 and low.endswith(("ing", "ed")) and _sentence_start(doc_text, m.start()):
+            continue
+        if not _in_text(word, profile_text):
+            found.append((m.start(), word, "term:" + low))
 
     flagged: list[str] = []
     seen: set[str] = set()
@@ -84,7 +134,7 @@ _LOCKED_KEYS = {"EMPLOYER": "employers", "TITLE": "titles", "DEGREE": "degrees",
 
 
 def _norm_field(value: str) -> str:
-    v = re.sub(r"\s*[-\u2013\u2014]\s*", "-", value.strip())
+    v = re.sub(r"\s*[-–—]\s*", "-", value.strip())
     return re.sub(r"\s+", " ", v).casefold()
 
 
