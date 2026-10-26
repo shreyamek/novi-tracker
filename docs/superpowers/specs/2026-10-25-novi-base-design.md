@@ -1,6 +1,6 @@
-# JobPilot base: design
+# Novi base: design
 
-Working name `jobpilot` (rename freely). Status: draft for Shreya's review, 2026-10-25.
+Name: `novi`. Status: draft for Shreya's review, 2026-10-25.
 
 ## Purpose
 
@@ -25,7 +25,7 @@ No hosted service, accounts or sync. No auto-submit. No sharing of one person's 
 ## Architecture
 
 ```
-jobpilot/
+novi/
   .claude/commands/   /setup /refresh /tailor /apply /update (agent instructions)
   app/                local web app: Python stdlib server + static JS/CSS
     core/             server, storage, auth-free localhost binding, helpers
@@ -85,6 +85,5 @@ pytest for server, storage and tracker logic (carried over from the existing sui
 
 ## Open questions (not blocking the spec)
 
-- Final name for the repo.
 - Resume template look: reuse Shreya's, or offer two or three neutral ones.
 - Whether to ship a default fit-scoring rubric or have `/setup` generate one per person (leaning: generated per person from their stated priorities).
