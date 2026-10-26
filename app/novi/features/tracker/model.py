@@ -105,6 +105,7 @@ def _find(apps: list[dict], app_id: str) -> dict:
     raise ValueError("no role with that id")
 
 
+@storage.locked()
 def add(app: dict) -> dict:
     company = _text(app.get("company"), "company")
     role = _text(app.get("role"), "role")
@@ -147,6 +148,7 @@ def add(app: dict) -> dict:
     return row
 
 
+@storage.locked()
 def set_status(app_id: str, status: str, date_: str | None = None) -> dict:
     if status not in STATUSES:
         raise ValueError(f"status must be one of: {', '.join(STATUSES)}")
@@ -159,6 +161,7 @@ def set_status(app_id: str, status: str, date_: str | None = None) -> dict:
     return row
 
 
+@storage.locked()
 def add_note(app_id: str, text: str) -> dict:
     text = _text(text, "note", 2000)
     if not text:

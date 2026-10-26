@@ -4,6 +4,7 @@ Nothing here is hard-coded: with no habits defined, every function returns an em
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import date, timedelta
 
@@ -24,6 +25,7 @@ def _keys() -> set[str]:
     return {h["key"] for h in defined()}
 
 
+@storage.locked()
 def define(habits: list[dict]) -> list[dict]:
     if not isinstance(habits, list):
         raise ValueError("habits must be a list")
@@ -63,10 +65,29 @@ def _day_file(day: date) -> str:
 
 
 def done_on(day: date) -> list[str]:
-    rec = storage.read_json(_day_file(day), None)
+    """Ticks for one day. A corrupt day file counts as not done here; warnings() reports it."""
+    try:
+        rec = storage.read_json(_day_file(day), None)
+    except storage.StorageError:
+        return []
     return list(rec.get("done", [])) if rec else []
 
 
+def warnings() -> list[str]:
+    """One line per day file under me/days/ that is not valid JSON. The files are never rewritten here."""
+    folder = storage.me_dir() / "days"
+    if not folder.is_dir():
+        return []
+    out = []
+    for path in sorted(folder.glob("*.json")):
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            out.append(f"days/{path.name} is not valid JSON")
+    return out
+
+
+@storage.locked()
 def log(day: str, key: str, done: bool) -> None:
     d = _check_date(day)
     if key not in _keys():

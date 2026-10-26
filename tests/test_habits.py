@@ -150,3 +150,64 @@ def test_post_done_string_returns_400_and_does_not_tick(me):
         registry.clear()
     assert status == 400
     assert habits.done_on(TODAY) == []
+
+
+def test_corrupt_day_file_skipped_and_reported(me):
+    from datetime import date as _date
+
+    define("gym")
+    (me / "days").mkdir(exist_ok=True)
+    bad = me / "days" / "2026-10-20.json"
+    bad.write_text("{not json", encoding="utf-8")
+    for d in ("2026-10-19", "2026-10-21", "2026-10-22"):
+        api.habits_log({"key": "gym", "done": True, "date": d})
+
+    # the corrupt day counts as not done; the days around it still count
+    assert habits.done_on(_date(2026, 10, 20)) == []
+    assert habits.streak("gym", _date(2026, 10, 22)) == 2
+    grid = {g["date"]: g["done"] for g in habits.grid(53, _date(2026, 10, 22))}
+    assert grid["2026-10-19"] == ["gym"] and grid["2026-10-21"] == ["gym"]
+    assert grid["2026-10-20"] == []
+
+    assert habits.warnings() == ["days/2026-10-20.json is not valid JSON"]
+    # never overwritten, even by a write to that same day
+    before = bad.read_bytes()
+    with pytest.raises(ValueError):
+        api.habits_log({"key": "gym", "done": True, "date": "2026-10-20"})
+    assert bad.read_bytes() == before
+
+
+def test_get_today_returns_200_with_warning_and_other_days(me):
+    import http.client
+    import json as _json
+    import threading
+    from datetime import date as _date
+    from http.server import ThreadingHTTPServer
+
+    from novi import registry
+    from novi.server import make_handler
+
+    define("gym")
+    (me / "days").mkdir(exist_ok=True)
+    (me / "days" / "2026-10-20.json").write_text("[oops", encoding="utf-8")
+    today = _date.today().isoformat()
+    api.habits_log({"key": "gym", "done": True, "date": today})
+
+    registry.clear()
+    registry.register("today", api.ROUTES, {"label": "Today"})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(me))
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", httpd.server_address[1], timeout=5)
+        conn.request("GET", "/api/today")
+        resp = conn.getresponse()
+        body = _json.loads(resp.read())
+        assert resp.status == 200
+        assert body["warnings"] == ["days/2026-10-20.json is not valid JSON"]
+        assert body["ticks"] == ["gym"]
+        assert body["streaks"]["gym"] == 1
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        registry.clear()

@@ -69,3 +69,30 @@ def test_closed_posting_flag_respected():
     no_flag = posting()
     del no_flag["open"]
     assert scoring.hard_filters(no_flag, PREFS) == []
+
+
+def test_city_matches_whole_word_only():
+    prefs = {**PREFS, "locations": ["Paris, France"]}
+    # "Parisian" contains "Paris" but is a different place
+    assert scoring.hard_filters(posting(remote="onsite", location="Parisian Suburbs, France"), prefs)
+    assert scoring.hard_filters(posting(remote="onsite", location="Paris, France"), prefs) == []
+    assert scoring.hard_filters(posting(remote="onsite", location="PARIS, FRANCE"), prefs) == []
+
+
+def test_dealbreaker_matches_whole_word_only():
+    # "sale" must not reject "wholesale"; the whole word still rejects
+    assert scoring.hard_filters(posting(description="Wholesale pricing for the team."), {**PREFS, "dealbreakers": ["sale"]}) == []
+    assert scoring.hard_filters(posting(description="Handles SALE items daily."), {**PREFS, "dealbreakers": ["sale"]})
+
+
+def test_multiword_dealbreaker_phrase_matched_case_insensitively():
+    prefs = {**PREFS, "dealbreakers": ["clearance required"]}
+    assert scoring.hard_filters(posting(description="Clearance Required for all candidates."), prefs)
+    assert scoring.hard_filters(posting(description="Clearance   required  (active)."), prefs)
+    assert scoring.hard_filters(posting(description="Clearance preferred, not required."), prefs) == []
+
+
+def test_dealbreaker_with_regex_characters_is_literal():
+    prefs = {**PREFS, "dealbreakers": ["c++ (legacy)"]}
+    assert scoring.hard_filters(posting(description="Must know C++ (legacy) code."), prefs)
+    assert scoring.hard_filters(posting(description="Must know C plus plus."), prefs) == []

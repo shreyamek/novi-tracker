@@ -3,8 +3,19 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
+
+# The server is threaded: every read-modify-write of a me/ file runs under this lock.
+lock = threading.RLock()
+
+
+@contextmanager
+def locked() -> Iterator[None]:
+    with lock:
+        yield
 
 
 class StorageError(Exception):
