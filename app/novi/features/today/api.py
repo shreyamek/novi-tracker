@@ -48,6 +48,7 @@ def _payload() -> dict:
         "ticks": habits.done_on(today),
         "streaks": {h["key"]: habits.streak(h["key"], today) for h in defined},
         "grid": habits.grid(GRID_WEEKS, today),
+        "warnings": habits.warnings(),
     }
 
 

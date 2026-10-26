@@ -196,7 +196,12 @@
   function draw() {
     if (!state.root || !state.data) return;
     const d = state.data;
-    const wrap = N.h("div", { class: "dash" }, header(d));
+    const wrap = N.h("div", { class: "dash" });
+    // Warnings are plain text (a file name can come from the person's own folder), never HTML.
+    if ((d.warnings || []).length) {
+      wrap.append(N.h("p", { class: "hint muted" }, "Skipped unreadable data: " + d.warnings.join("; ") + "."));
+    }
+    wrap.append(header(d));
     if ((d.habits || []).length) {
       wrap.append(tiles(d));
     } else {
