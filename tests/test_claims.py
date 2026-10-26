@@ -109,6 +109,27 @@ def test_spring_flagged_when_profile_lacks_it():
     assert "Spring" in claims.unsupported_claims("Built Spring Boot APIs.", PROFILE)
 
 
+def test_express_at_sentence_start_not_flagged_when_profile_lacks_it():
+    assert claims.unsupported_claims("Express interest in growth.", PROFILE) == []
+    assert claims.unsupported_claims("- Express interest in growth.", PROFILE) == []
+
+
+def test_express_as_a_tool_mid_sentence_still_flagged():
+    assert "Express" in claims.unsupported_claims("Built Express apps for clients.", PROFILE)
+
+
+def test_known_tool_after_sentence_start_word_still_flagged():
+    assert claims.unsupported_claims("Built Kafka pipelines.", PROFILE) == ["Kafka"]
+
+
+def test_sentence_start_common_word_not_flagged():
+    assert claims.unsupported_claims("Passion for clear reporting. Eager to contribute.", PROFILE) == []
+
+
+def test_ambiguous_tool_at_sentence_start_still_flagged():
+    assert "Spring" in claims.unsupported_claims("Spring Boot services for the team.", PROFILE)
+
+
 def test_own_name_in_document_not_flagged():
     assert claims.unsupported_claims("Alex Example, analyst at Acme Corp.", PROFILE) == []
 

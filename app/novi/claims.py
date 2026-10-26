@@ -61,6 +61,15 @@ _STOPLIST = frozenset(w.casefold() for w in """
     Coordinated Supported Partnered Mentored Achieved Served Maintained Established Produced Presented
     Trained Simplified Streamlined Scaled Migrated Used Helped Spearheaded Architected Optimized
     Tracked Ran Set Made Grew Saved Reported Shipped Worked Hired Answered Handled Took Held
+    Interest Growth Passion Excited Eager Thrilled Motivated Ready Committed Excellent Strong
+    Team Teams Company Role Opportunity Best Regards Hello Hi Looking Seeking
+""".split())
+
+# Common English words that are also tool names or could start a sentence. They are ignored only when
+# they open a sentence, so "Built Express apps" still flags Express. Tool names are never stoplisted.
+_SENTENCE_START_WORDS = frozenset(w.casefold() for w in """
+    Express Focus Grow Help Drive Bring Lead Ensure Contribute Leverage Collaborate Communicate
+    Apply Seek Pursue Deliver Love Enjoy Learn Support Keep Make Find Join Take Use Want Work Build
 """.split())
 
 
@@ -99,7 +108,8 @@ def unsupported_claims(doc_text: str, profile_text: str) -> list[str]:
 
     Capitalised words are checked one at a time, so "Spring Boot" is flagged only when "Spring" or
     "Boot" is missing from the profile. Sentence-opening stop words and sentence-initial -ed/-ing verb
-    forms are skipped.
+    forms are skipped, and so are the sentence-opening common words in _SENTENCE_START_WORDS (for
+    example "Express interest"), which are skipped as tool names too.
     """
     profile_numbers = {_normalize_number(m.group()) for m in _NUMBER.finditer(profile_text)}
     profile_tools = {t.lower() for t in KNOWN_TOOLS if _tool_pattern(t).search(profile_text)}
@@ -114,6 +124,8 @@ def unsupported_claims(doc_text: str, profile_text: str) -> list[str]:
         if tool.lower() in profile_tools:
             continue
         for m in _tool_pattern(tool).finditer(doc_text):
+            if tool.casefold() in _SENTENCE_START_WORDS and _sentence_start(doc_text, m.start()):
+                continue
             found.append((m.start(), m.group(), "term:" + m.group().casefold()))
     for m in _WORD.finditer(doc_text):
         word = m.group()
@@ -121,6 +133,8 @@ def unsupported_claims(doc_text: str, profile_text: str) -> list[str]:
         if low in _STOPLIST or low in name_words:
             continue
         if len(low) > 4 and low.endswith(("ing", "ed")) and _sentence_start(doc_text, m.start()):
+            continue
+        if low in _SENTENCE_START_WORDS and _sentence_start(doc_text, m.start()):
             continue
         if not _in_text(word, profile_text):
             found.append((m.start(), word, "term:" + low))
