@@ -46,3 +46,14 @@ def test_guard_flags_tracked_word_documents(tmp_path):
 def test_guard_passes_on_fixture_pdf(tmp_path):
     r = run(tmp_path, {"tests/fixtures/sample.pdf": "%PDF-1.4 fake"})
     assert r.returncode == 0, r.stdout
+
+
+def test_guard_ignores_google_fonts_url(tmp_path):
+    r = run(tmp_path, {"index.html": '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600">'})
+    assert r.returncode == 0, r.stdout
+
+
+def test_guard_flags_email_alone(tmp_path):
+    r = run(tmp_path, {"notes.md": "write to jane.doe@gmail.com"})
+    assert r.returncode == 1
+    assert "email" in r.stdout

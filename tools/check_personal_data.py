@@ -3,7 +3,7 @@ import re
 import subprocess
 import sys
 
-EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}\b")
 PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}\b")
 SAFE_EMAIL = re.compile(r"@(example\.(com|org|net)|users\.noreply\.github\.com|noreply\.anthropic\.com)$|^noreply@", re.I)
 SAFE_PREFIXES = ("tests/",)
