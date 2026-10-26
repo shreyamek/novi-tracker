@@ -24,6 +24,7 @@ def _find(items: list[dict], todo_id: str) -> int:
     raise ValueError("no to-do with that id")
 
 
+@storage.locked()
 def add(text: str) -> dict:
     text = (text or "").strip() if isinstance(text, str) else None
     if not text:
@@ -37,6 +38,7 @@ def add(text: str) -> dict:
     return row
 
 
+@storage.locked()
 def toggle(todo_id: str) -> dict:
     items = list_all()
     row = items[_find(items, todo_id)]
@@ -45,6 +47,7 @@ def toggle(todo_id: str) -> dict:
     return row
 
 
+@storage.locked()
 def set_today(todo_id: str, flag: bool) -> dict:
     items = list_all()
     row = items[_find(items, todo_id)]
@@ -53,6 +56,7 @@ def set_today(todo_id: str, flag: bool) -> dict:
     return row
 
 
+@storage.locked()
 def move(todo_id: str, to_index: int) -> None:
     items = list_all()
     i = _find(items, todo_id)
@@ -63,6 +67,7 @@ def move(todo_id: str, to_index: int) -> None:
     _save(items)
 
 
+@storage.locked()
 def delete(todo_id: str) -> None:
     items = list_all()
     del items[_find(items, todo_id)]

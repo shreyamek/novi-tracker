@@ -24,6 +24,7 @@ def _keys() -> set[str]:
     return {h["key"] for h in defined()}
 
 
+@storage.locked()
 def define(habits: list[dict]) -> list[dict]:
     if not isinstance(habits, list):
         raise ValueError("habits must be a list")
@@ -67,6 +68,7 @@ def done_on(day: date) -> list[str]:
     return list(rec.get("done", [])) if rec else []
 
 
+@storage.locked()
 def log(day: str, key: str, done: bool) -> None:
     d = _check_date(day)
     if key not in _keys():
