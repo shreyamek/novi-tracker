@@ -121,13 +121,24 @@ def make_handler(me_dir: Path) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             self._dispatch("POST")
 
+        def _reject(self, code: int, message: str) -> None:
+            # Read the small body first: answering before it is read resets the connection
+            # while the client is still sending, and the client never sees the status.
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            if 0 < length <= MAX_BODY:
+                self.rfile.read(length)
+            self._error(code, message)
+
         def _dispatch(self, method: str) -> None:
             if not self._host_allowed():
-                return self._error(403, "Novi only answers on 127.0.0.1 or localhost.")
+                return self._reject(403, "Novi only answers on 127.0.0.1 or localhost.")
             if not self._origin_allowed():
-                return self._error(403, "Requests from other websites are not allowed.")
+                return self._reject(403, "Requests from other websites are not allowed.")
             if method == "POST" and not self._json_request():
-                return self._error(415, "Send Novi requests as application/json.")
+                return self._reject(415, "Send Novi requests as application/json.")
             path = urlsplit(self.path).path
             if path.startswith("/api/"):
                 return self._api(method, path)
