@@ -17,6 +17,16 @@ def _city(location: str) -> str:
     return _norm(location.split(",")[0])
 
 
+def _phrase_in(phrase: str, text: str) -> bool:
+    """Case-insensitive whole-word or whole-phrase match.
+
+    "Paris" does not match "Parisian", and "sale" does not match "wholesale". Word characters are checked
+    with lookarounds rather than word boundaries, so a term that starts or ends with punctuation
+    (such as "c++") still matches.
+    """
+    return re.search(r"(?<!\w)" + re.escape(phrase) + r"(?!\w)", text, re.IGNORECASE) is not None
+
+
 def hard_filters(posting: dict[str, Any], prefs: dict[str, Any]) -> list[str]:
     """Reasons to reject the posting. An empty list means it passes."""
     reasons: list[str] = []
@@ -31,14 +41,14 @@ def hard_filters(posting: dict[str, Any], prefs: dict[str, Any]) -> list[str]:
 
     text = _norm(posting.get("title")) + " " + _norm(posting.get("description"))
     for word in prefs.get("dealbreakers") or []:
-        if _norm(word) and _norm(word) in text:
+        if _norm(word) and _phrase_in(_norm(word), text):
             reasons.append(f"dealbreaker: '{word}'")
 
     remote = posting.get("remote")
     locations = prefs.get("locations") or []
     if remote in ("onsite", "hybrid") and not prefs.get("relocate") and locations:
         place = _norm(posting.get("location"))
-        if not any(_city(loc) and _city(loc) in place for loc in locations):
+        if not any(_city(loc) and _phrase_in(_city(loc), place) for loc in locations):
             reasons.append(f"{remote} in {posting.get('location') or 'an unknown place'}, not one of your locations")
 
     if prefs.get("sponsorship_needed") and posting.get("sponsorship_offered") is False:
