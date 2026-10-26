@@ -85,11 +85,13 @@ Write one line of reason that names the specific matches or gaps. Use only facts
 
 Roles with a score at or above `fit_threshold` (default 8.0) are added. Stop after 10 new roles.
 
-Build each application using these fields:
+Adding always goes through the app's tracker API, which does the duplicate check and assigns the `id`. Never edit `me/tracker.json` by hand and never invent an `id`.
+
+1. Check that the app is running: `GET http://127.0.0.1:8765/api/status` should answer. If it does not, tell the person to start Novi with `run.bat` (Windows) or `./run.sh` (Mac/Linux), wait for them to say it is running, then continue. Do not add roles by editing files.
+2. For each role that passes, send `POST http://127.0.0.1:8765/api/tracker/add` with a JSON body using these fields:
 
 | Field | Value |
 |---|---|
-| `id` | A new unique string, for example `app-` followed by 8 random lowercase hex characters. |
 | `company` | Company name from the posting. |
 | `role` | Job title from the posting. |
 | `status` | Always `Pending`. |
@@ -98,17 +100,13 @@ Build each application using these fields:
 | `pay` | The posted pay range as text, for example `$70,000 to $85,000`, or empty if not posted. |
 | `score` | The fit score (number, 0 to 10). |
 | `score_why` | The one-line reason from Step 7. |
-| `notes` | Short factual notes, for example `Found by /refresh on 2026-10-25. Confirmed open.` |
+| `notes` | A single text string of short factual notes, for example `Found by /refresh on 2026-10-25. Confirmed open.`. The app stores it as the first dated note. |
 | `docs` | An empty list `[]`. |
 | `posted` | The date posted, `YYYY-MM-DD`, or empty if not shown. |
 | `applied` | Empty. Only the person can record an application. |
-| `added` | Today's date, `YYYY-MM-DD`. |
 
-Add the applications in one of two ways:
-- **If the app is running** at `http://127.0.0.1:8765`, use its tracker API (`POST /api/tracker/add`) for each application.
-- **Otherwise**, append them to `me/tracker.json`. Read the current list, append the new entries, and write the whole list back as formatted JSON in UTF-8. Write to a temporary file in `me/` first, then rename it over `me/tracker.json`. Never write a file that failed to parse.
-
-Before adding, check again that no entry with the same link, or the same company and role, is already in the tracker.
+3. If the response is HTTP 400 with a duplicate message, record the role as "duplicate of an existing entry" and move on. If it is any other 400, record the error text as the reason and move on.
+4. The app's response contains the stored role with its `id`. Use it in the report.
 
 ## Step 9: Report
 
@@ -120,6 +118,8 @@ End with a plain report:
 4. A one-line reminder that nothing was applied for, and that the person decides what to apply to.
 
 ## Never
+
+- Never edit `me/tracker.json` by hand, and never invent a role `id`. The app assigns it.
 
 - Never apply, fill in a form, create an account, or submit anything.
 - Never draft a resume, cover letter or other document unless the person asks in a separate request.

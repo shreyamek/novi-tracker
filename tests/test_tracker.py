@@ -85,3 +85,29 @@ def test_corrupt_tracker_json_not_overwritten(me):
 
 def test_empty_me_returns_empty_list(me):
     assert model.list_all() == []
+
+
+def test_add_accepts_empty_docs_and_text_notes(me):
+    row = model.add(base(docs=[], notes="why it fits"))
+    stored = model.list_all()[0]
+    assert stored["docs"] == []
+    assert stored["notes"] == [{"date": date.today().isoformat(), "text": "why it fits"}]
+    assert row["notes"] == stored["notes"]
+
+
+def test_add_stores_docs_list_of_strings(me):
+    model.add(base(docs=["resume.pdf", "cover_letter.pdf"]))
+    assert model.list_all()[0]["docs"] == ["resume.pdf", "cover_letter.pdf"]
+
+
+def test_add_rejects_docs_that_are_not_a_list_of_strings(me):
+    with pytest.raises(ValueError):
+        model.add(base(docs="resume.pdf"))
+    with pytest.raises(ValueError):
+        model.add(base(docs=[1, 2]))
+    assert model.list_all() == []
+
+
+def test_add_empty_notes_string_stores_no_notes(me):
+    model.add(base(notes="   "))
+    assert model.list_all()[0]["notes"] == []

@@ -53,6 +53,14 @@ def _text(value, name: str, limit: int = TEXT_LIMIT) -> str:
     return value
 
 
+def _docs(value) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(d, str) for d in value):
+        raise ValueError("docs must be a list of text entries")
+    return [d.strip() for d in value if d.strip()]
+
+
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip().lower()
 
@@ -124,8 +132,13 @@ def add(app: dict) -> dict:
         elif name in ("posted", "applied"):
             v = _text(app.get(name), name, 20)
             setattr(record, name, _iso_date(v, name) if v else "")
+        elif name == "docs":
+            record.docs = _docs(app.get("docs"))
         else:
             setattr(record, name, _text(app.get(name), name))
+    note = _text(app.get("notes"), "notes", 2000)
+    if note:
+        record.notes = [{"date": _today(), "text": note}]
     if status == "Applied":
         record.applied = record.applied or _today()
     row = asdict(record)
