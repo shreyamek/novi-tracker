@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{NAME}} - Resume</title>
+<style>
+  @page { size: letter; margin: 0.6in; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.35; color: #1a1a1a; background: #fff; }
+  header { border-bottom: 1px solid #1a1a1a; padding-bottom: 6px; margin-bottom: 10px; }
+  h1 { font-size: 20pt; margin: 0 0 2px; }
+  .contact { font-size: 9.5pt; color: #444; }
+  h2 { font-size: 11pt; text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 0 4px; border-bottom: 0.5px solid #999; padding-bottom: 2px; }
+  p { margin: 3px 0; }
+  .entry { margin: 8px 0 2px; }
+  .entry-head { display: flex; justify-content: space-between; font-weight: bold; }
+  .entry-sub { display: flex; justify-content: space-between; font-style: italic; color: #333; }
+  ul { margin: 3px 0 0 18px; padding: 0; }
+  li { margin: 2px 0; }
+  .skills { margin: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{NAME}}</h1>
+  <div class="contact">{{CONTACT}}</div>
+</header>
+
+<h2>Summary</h2>
+<p>{{SUMMARY}}</p>
+
+<h2>Experience</h2>
+<!-- One block per role, in the order the tailoring level chose. Employer, title and dates must match me/profile.md exactly. -->
+<div class="entry">
+  <div class="entry-head"><span>{{EXPERIENCE_1_TITLE}}</span><span>{{EXPERIENCE_1_DATES}}</span></div>
+  <div class="entry-sub"><span>{{EXPERIENCE_1_EMPLOYER}}</span><span>{{EXPERIENCE_1_LOCATION}}</span></div>
+  <ul>{{EXPERIENCE_1_BULLETS}}</ul>
+</div>
+
+<h2>Skills</h2>
+<p class="skills">{{SKILLS}}</p>
+
+<h2>Education</h2>
+<div class="entry">
+  <div class="entry-head"><span>{{EDUCATION_DEGREE}}</span><span>{{EDUCATION_DATES}}</span></div>
+  <div class="entry-sub"><span>{{EDUCATION_SCHOOL}}</span><span></span></div>
+</div>
+</body>
+</html>
