@@ -1,0 +1,18 @@
+{
+  "target_roles": ["Junior Data Analyst", "Data Analyst I"],
+  "field": "data analytics",
+  "level": "entry (0-2 years)",
+  "locations": ["Austin, TX"],
+  "remote": "hybrid",
+  "relocate": false,
+  "pay_floor": 70000,
+  "dealbreakers": ["commission only", "unpaid"],
+  "start_date": "2027-02",
+  "work_auth": "US citizen",
+  "sponsorship_needed": false,
+  "tailoring": "standard",
+  "apply_mode": "off",
+  "fill_demographics": false,
+  "fit_threshold": 8.0,
+  "search_goals": "First analyst role with SQL-heavy work and a mentor. Open to hybrid in Austin."
+}

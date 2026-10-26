@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test application form (fake data)</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #1a1a1a; }
+  label { display: block; margin: 12px 0 4px; }
+  input[type=text], input[type=email] { width: 320px; padding: 6px; }
+  button { margin-top: 16px; padding: 8px 16px; }
+</style>
+</head>
+<body>
+<h1>Test application form</h1>
+<p>Fake fixture for dry-running /apply. Nothing is sent anywhere. The submit button only shows a message.</p>
+<form id="application" action="#" method="post">
+  <label for="full_name">Full name *</label>
+  <input type="text" id="full_name" name="full_name" required>
+
+  <label for="email">Email *</label>
+  <input type="email" id="email" name="email" required>
+
+  <label for="resume">Resume (PDF) *</label>
+  <input type="file" id="resume" name="resume" accept=".pdf,.docx" required>
+
+  <label><input type="checkbox" id="consent" name="consent" required> I agree to the terms *</label>
+
+  <button type="submit" id="submit">Submit application</button>
+</form>
+<p id="result"></p>
+<script>
+  document.getElementById("application").addEventListener("submit", function (e) {
+    e.preventDefault();
+    document.getElementById("result").textContent = "Submitted (test form, nothing was sent).";
+  });
+</script>
+</body>
+</html>

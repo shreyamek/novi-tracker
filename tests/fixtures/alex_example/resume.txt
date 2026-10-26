@@ -1,0 +1,26 @@
+Alex Example
+Austin, TX
+
+SUMMARY
+Junior data analyst with two years of experience building reports in SQL and Python.
+
+EXPERIENCE
+Data Assistant, Example Retail Co., Austin, TX (March 2024 - present)
+- Wrote SQL queries that cut weekly sales-report prep from 4 hours to 1 hour
+- Built a Python script that cleaned and merged store inventory files
+
+Sales Support Associate, Harbor Logistics Example, Austin, TX (June 2022 - February 2024)
+- Tracked shipment exceptions in a spreadsheet and flagged delays to dispatch
+
+PROJECTS
+Bike Share Trends (Python, pandas)
+- Analyzed 12 months of public trip data to find weekday commute patterns
+
+Coffee Shop Dashboard (SQL)
+- Built a set of saved queries for daily sales and waste
+
+SKILLS
+Python, SQL, Excel, spreadsheets, report writing
+
+EDUCATION
+Associate of Arts, Example Community College (2022)

@@ -129,7 +129,7 @@ From inside the `novi-tracker` folder:
 claude
 ```
 
-Put your current resume (PDF or Word) into the `novi-tracker` folder, then type:
+Put your current resume (PDF or Word) into the `me/` folder inside `novi-tracker` (create the folder if it is not there), then type:
 
 ```
 /setup
@@ -201,7 +201,7 @@ Then ask Claude for what you want ("add a tab for networking contacts"). New fea
 
 - Your data is in `me/`, which is excluded from git. Never copy `me/` into the repo or share it.
 - `/refresh` uses web search through your own Claude session. There is no telemetry.
-- Don't commit your resume or contact details. A check (`tools/check_personal_data.py`) blocks this.
+- Don't commit your resume or contact details. The check `tools/check_personal_data.py` runs in CI on every push, and you can run it by hand with `py -3 tools/check_personal_data.py` (Mac: `python3 tools/check_personal_data.py`). It is not a pre-commit hook, so run it yourself before you share a change.
 
 ## Troubleshooting
 
