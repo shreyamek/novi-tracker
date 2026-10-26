@@ -77,3 +77,83 @@ def test_path_traversal_rejected(running):
     assert status == 404
     status, _ = request(running, "GET", "/features/..%2F..%2Fx/static/a.js")
     assert status == 404
+
+
+POSTED = []
+
+
+@pytest.fixture
+def running_with_post(me):
+    """Like `running`, plus a POST route that records every body it receives."""
+    registry.clear()
+    POSTED.clear()
+
+    def record(body):
+        POSTED.append(body)
+        return {"ok": True}
+
+    registry.register("demo", {"POST /api/demo": record}, {"label": "Demo"})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(me))
+    port = httpd.server_address[1]
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    yield port
+    httpd.shutdown()
+    httpd.server_close()
+    thread.join(timeout=5)
+    registry.clear()
+
+
+def test_cross_origin_text_plain_post_rejected_and_writes_nothing(running_with_post):
+    port = running_with_post
+    status, _ = request(
+        port, "POST", "/api/demo", body={"x": 1},
+        headers={"Content-Type": "text/plain", "Origin": "http://evil.example"},
+    )
+    assert status in (403, 415)
+    assert POSTED == []
+
+
+def test_cross_origin_json_post_rejected_and_writes_nothing(running_with_post):
+    port = running_with_post
+    status, _ = request(
+        port, "POST", "/api/demo", body={"x": 1}, headers={"Origin": "http://evil.example"},
+    )
+    assert status == 403
+    assert POSTED == []
+
+
+def test_text_plain_post_rejected_even_without_origin(running_with_post):
+    port = running_with_post
+    status, _ = request(port, "POST", "/api/demo", body={"x": 1}, headers={"Content-Type": "text/plain"})
+    assert status == 415
+    assert POSTED == []
+
+
+def test_same_origin_json_post_works(running_with_post):
+    port = running_with_post
+    status, _ = request(
+        port, "POST", "/api/demo", body={"x": 1}, headers={"Origin": f"http://127.0.0.1:{port}"},
+    )
+    assert status == 200
+    assert POSTED == [{"x": 1}]
+
+
+def test_localhost_origin_json_post_works(running_with_post):
+    port = running_with_post
+    status, _ = request(
+        port, "POST", "/api/demo", body={"x": 2}, headers={"Origin": f"http://localhost:{port}"},
+    )
+    assert status == 200
+    assert POSTED == [{"x": 2}]
+
+
+def test_json_post_without_origin_still_works(running_with_post):
+    status, _ = request(running_with_post, "POST", "/api/demo", body={"x": 3})
+    assert status == 200
+    assert POSTED == [{"x": 3}]
+
+
+def test_get_with_foreign_origin_rejected(running):
+    status, _ = request(running, "GET", "/api/features", headers={"Origin": "http://evil.example"})
+    assert status == 403

@@ -1,6 +1,7 @@
 """Localhost HTTP server for Novi: JSON API, app shell and feature assets. Python stdlib only.
 
-Binds to 127.0.0.1 only and rejects any Host header other than 127.0.0.1 or localhost on the chosen port.
+Binds to 127.0.0.1 only, rejects any Host header other than 127.0.0.1 or localhost on the chosen port, rejects
+cross-origin Origin headers, and accepts POST only as application/json.
 """
 from __future__ import annotations
 
@@ -80,6 +81,18 @@ def make_handler(me_dir: Path) -> type[BaseHTTPRequestHandler]:
             port = self.server.server_address[1]
             return self.headers.get("Host", "") in (f"127.0.0.1:{port}", f"localhost:{port}")
 
+        def _origin_allowed(self) -> bool:
+            # A browser sends Origin on cross-site requests; only our own page may send one.
+            origin = self.headers.get("Origin")
+            if origin is None:
+                return True
+            port = self.server.server_address[1]
+            return origin in (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
+
+        def _json_request(self) -> bool:
+            ctype = (self.headers.get("Content-Type") or "").strip().lower()
+            return ctype.startswith("application/json")
+
         # --- responses ----------------------------------------------------
 
         def _send(self, code: int, body: bytes, ctype: str, extra: dict | None = None) -> None:
@@ -111,6 +124,10 @@ def make_handler(me_dir: Path) -> type[BaseHTTPRequestHandler]:
         def _dispatch(self, method: str) -> None:
             if not self._host_allowed():
                 return self._error(403, "Novi only answers on 127.0.0.1 or localhost.")
+            if not self._origin_allowed():
+                return self._error(403, "Requests from other websites are not allowed.")
+            if method == "POST" and not self._json_request():
+                return self._error(415, "Send Novi requests as application/json.")
             path = urlsplit(self.path).path
             if path.startswith("/api/"):
                 return self._api(method, path)
