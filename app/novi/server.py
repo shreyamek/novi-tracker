@@ -55,6 +55,12 @@ def load_features() -> None:
             importlib.import_module(f"novi.features.{mod.name}")
 
 
+def _feature_info(feature: dict) -> dict:
+    """What the shell needs to build its nav: the tab's label plus its optional icon (SVG path d) and group."""
+    tab = feature["tab"] or {}
+    return {"name": feature["name"], "tab": feature["tab"], "icon": tab.get("icon"), "group": tab.get("group")}
+
+
 def _status(me: Path) -> dict:
     has_data = me.exists() and any(me.iterdir())
     return {"has_profile": (me / "profile.md").exists(), "has_data": has_data}
@@ -141,7 +147,7 @@ def make_handler(me_dir: Path) -> type[BaseHTTPRequestHandler]:
 
         def _api(self, method: str, path: str) -> None:
             if method == "GET" and path == "/api/features":
-                return self._json(200, [{"name": f["name"], "tab": f["tab"]} for f in registry.features()])
+                return self._json(200, [_feature_info(f) for f in registry.features()])
             if method == "GET" and path == "/api/status":
                 return self._json(200, _status(me_path))
 

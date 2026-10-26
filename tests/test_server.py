@@ -42,7 +42,26 @@ def test_api_features_lists_registered(running):
     status, raw = request(running, "GET", "/api/features")
     assert status == 200
     features = json.loads(raw)
-    assert {"name": "demo", "tab": {"label": "Demo"}} in features
+    assert any(f["name"] == "demo" and f["tab"] == {"label": "Demo"} for f in features)
+
+
+def test_api_features_passes_icon_and_group(running):
+    registry.register("grouped", {}, {"label": "Grouped", "icon": "M3 3h14v14H3z", "group": "work"})
+    status, raw = request(running, "GET", "/api/features")
+    assert status == 200
+    entry = next(f for f in json.loads(raw) if f["name"] == "grouped")
+    assert entry["icon"] == "M3 3h14v14H3z"
+    assert entry["group"] == "work"
+    demo = next(f for f in json.loads(raw) if f["name"] == "demo")
+    assert demo["icon"] is None and demo["group"] is None
+
+
+def test_today_payload_name_comes_from_preferences(me):
+    from novi.features.today import api as today_api
+
+    assert today_api.get_today(None)["name"] is None
+    (me / "preferences.json").write_text(json.dumps({"name": "  Test Friend  "}), encoding="utf-8")
+    assert today_api.get_today(None)["name"] == "Test Friend"
 
 
 def test_non_localhost_host_header_forbidden(running):

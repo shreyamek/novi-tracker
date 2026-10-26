@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from novi import storage
+from novi import prefs, storage
 
 from . import habits, todos
 
@@ -38,11 +38,20 @@ def _flag(value, name: str) -> bool:
     return value
 
 
+def _name() -> str | None:
+    # Optional: only shown in the greeting when me/preferences.json has a non-empty "name".
+    name = prefs.load().get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return None
+
+
 def _payload() -> dict:
     today = date.today()
     defined = habits.defined()
     return {
         "date": today.isoformat(),
+        "name": _name(),
         "todos": todos.list_all(),
         "habits": defined,
         "ticks": habits.done_on(today),
