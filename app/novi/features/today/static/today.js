@@ -1,5 +1,6 @@
 "use strict";
-// Today tab: greeting and progress ring, habit tiles, to-do list (TODAY tag, reorder), contributions grid.
+// Today tab, laid out like the Second Brain dashboard: header with eyebrow, greeting and progress ring,
+// habit tiles with 14 dots, a two-column grid (to-do list and habit checklist), then the contributions grid.
 // Habits come from the server; with none defined only the to-do list shows. All text goes in as text nodes.
 (function () {
   const N = window.NOVI;
@@ -24,12 +25,14 @@
   // ------------------------------------------------------------ header and progress ring
   function header(d) {
     const habits = d.habits || [];
-    const done = habits.filter((x) => (d.ticks || []).includes(x.key)).length;
+    const ticks = d.ticks || [];
+    const done = habits.filter((x) => ticks.includes(x.key)).length;
     const todos = d.todos || [];
     const open = todos.filter((t) => !t.done).length;
     const urgent = todos.filter((t) => !t.done && t.today).length;
     const hr = new Date().getHours();
     const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+    const hello = d.name ? `${greet}, ${d.name}` : greet;
     const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
     const parts = [];
@@ -39,13 +42,13 @@
     const kids = [
       N.h("div", {},
         N.h("p", { class: "eyebrow" }, dateLabel),
-        N.h("h1", {}, greet),
+        N.h("h1", {}, hello),
         N.h("p", { class: "muted" }, parts.join(". ") + ".")),
     ];
     if (habits.length) {
       const pct = Math.round((100 * done) / habits.length);
-      kids.push(N.h("div", { class: "ring", style: `--p:${pct}`, "aria-label": `${done} of ${habits.length} habits done` },
-        N.h("div", {}, `${done}/${habits.length}`)));
+      kids.push(N.h("div", { class: "ring", style: `--p:${pct}`, role: "img", "aria-label": `${done} of ${habits.length} habits done` },
+        N.h("div", { "aria-hidden": "true" }, `${done}/${habits.length}`)));
     }
     return N.h("div", { class: "dhead" }, kids);
   }
@@ -57,7 +60,7 @@
     return N.h("div", { class: "tiles" }, (d.habits || []).map((hb) => {
       const done = ticks.includes(hb.key);
       const streak = (d.streaks || {})[hb.key] || 0;
-      const dots = recent.map((g) => N.h("i", { class: g.done.includes(hb.key) ? "on" : "", title: g.date }));
+      const dots = recent.map((g) => N.h("i", { class: (g.done || []).includes(hb.key) ? "on" : "", title: g.date }));
       return N.h("button", {
         class: "tile" + (done ? " done" : ""),
         type: "button",
@@ -145,6 +148,29 @@
       form);
   }
 
+  // ------------------------------------------------------------ habit checklist (the same ticks as the tiles)
+  function habitsCard(d) {
+    const habits = d.habits || [];
+    const ticks = d.ticks || [];
+    const streaks = d.streaks || {};
+    const ul = N.h("ul", { class: "checks habitlist" });
+    habits.forEach((hb) => {
+      const done = ticks.includes(hb.key);
+      const streak = streaks[hb.key] || 0;
+      const cb = N.h("input", { type: "checkbox", "aria-label": hb.label });
+      cb.checked = done;
+      cb.addEventListener("change", () => act("/api/habits/log", { key: hb.key, done: cb.checked }));
+      ul.append(N.h("li", { class: done ? "done" : "" },
+        cb,
+        N.h("span", { class: "ct" }, hb.label),
+        N.h("span", { class: "muted small" }, `${streak} ${streak === 1 ? "day" : "days"}`)));
+    });
+    const open = habits.filter((hb) => !ticks.includes(hb.key)).length;
+    return N.h("section", { class: "card" },
+      N.h("div", { class: "chead" }, N.h("h2", {}, "Habit tracker"), N.h("span", { class: "muted small" }, `${open} open`)),
+      ul);
+  }
+
   // ------------------------------------------------------------ contributions grid
   function level(day, total) {
     if (!day || !total) return 0;
@@ -199,10 +225,11 @@
     const wrap = N.h("div", { class: "dash" }, header(d));
     if ((d.habits || []).length) {
       wrap.append(tiles(d));
+      wrap.append(N.h("div", { class: "dgrid" }, todoCard(d), habitsCard(d)));
     } else {
       wrap.append(N.h("p", { class: "hint muted" }, "No habits yet. Add habits by telling Claude, for example \"track gym and reading\"."));
+      wrap.append(N.h("div", { class: "dgrid" }, todoCard(d)));
     }
-    wrap.append(N.h("div", { class: "dgrid" }, N.h("div", { class: "dcol" }, todoCard(d))));
     const grid = contributions(d);
     if (grid) wrap.append(grid);
     state.root.replaceChildren(wrap);
