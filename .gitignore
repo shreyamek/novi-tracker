@@ -1,5 +1,10 @@
 # everything personal lives in me/ and never gets committed
 me/
+# resumes and documents dropped in the repo root must never be committed
+/*.pdf
+/*.doc
+/*.docx
+/*.rtf
 *.local.*
 __pycache__/
 *.pyc

@@ -15,14 +15,15 @@ You are setting up Novi Tracker for one person. They may not be a developer. Tal
 
 ## Step 1: Find the resume
 
-1. Look in the repo folder (the folder that contains `README.md`) for a resume the person dropped in: a `.pdf`, `.docx` or `.txt` file whose name suggests a resume or CV. Ignore `templates/`, `docs/`, `app/` and `tests/`.
-2. If there is more than one candidate, list them and ask which one is the resume.
-3. If there is none, ask the person to drop their resume into the repo folder and say so. You can still continue by interview, but tell them the profile will be built more slowly.
-4. Read the resume. For a PDF, read it directly. For a `.docx`, extract its text (for example with `python -m zipfile` and reading `word/document.xml`, stripping tags). Read the whole resume before asking anything.
+1. Look in `me/` first (the folder that holds the person's data, next to this repo's `README.md`). Look for a `.pdf`, `.docx` or `.txt` file whose name suggests a resume or CV. Ignore anything else in `me/`.
+2. If none is found there, look in the repo folder itself (the folder that contains `README.md`), as a fallback. Ignore `templates/`, `docs/`, `app/` and `tests/`. If a resume is found in the repo folder, read it, then tell the person to move it into `me/` and explain why: resumes stay in the git-ignored `me/` folder and must never be committed.
+3. If there is more than one candidate, list them and ask which one is the resume.
+4. If there is none in either place, ask the person to drop their resume into the `me/` folder and say so. Create `me/` first if it does not exist. You can still continue by interview, but tell them the profile will be built more slowly.
+5. Read the resume. For a PDF, read it directly. For a `.docx`, extract its text (for example with `python -m zipfile` and reading `word/document.xml`, stripping tags). Read the whole resume before asking anything.
 
 ## Step 2: Create `me/` and build `me/profile.md`
 
-1. Create the folder `me/` in the repo if it does not exist. Do not change anything outside `me/`.
+1. Make sure the folder `me/` exists in the repo (create it if not). Do not change anything outside `me/`.
 2. Start from `templates/profile.md`. Copy it to `me/profile.md`.
 3. Fill it in section by section, in this order: Summary, Experience, Projects, Skills, Education, Numbers and results.
    - For each job, write the title, employer, location and dates exactly as the resume gives them.

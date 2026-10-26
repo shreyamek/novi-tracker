@@ -129,7 +129,7 @@ From inside the `novi-tracker` folder:
 claude
 ```
 
-Put your current resume (PDF or Word) into the `novi-tracker` folder, then type:
+Put your current resume (PDF or Word) into the `me/` folder inside `novi-tracker` (create the folder if it is not there), then type:
 
 ```
 /setup

@@ -29,3 +29,20 @@ def test_guard_flags_tracked_me_files(tmp_path):
 def test_guard_passes_on_fake_alex_example(tmp_path):
     r = run(tmp_path, {"tests/fixtures/alex.md": "Alex Example alex@example.com 555-0100"})
     assert r.returncode == 0, r.stdout
+
+
+def test_guard_flags_tracked_resume_at_repo_root(tmp_path):
+    r = run(tmp_path, {"resume.pdf": "%PDF-1.4 fake"})
+    assert r.returncode == 1
+    assert "resume.pdf" in r.stdout
+
+
+def test_guard_flags_tracked_word_documents(tmp_path):
+    r = run(tmp_path, {"cv.docx": "x", "old.doc": "x", "notes.rtf": "x"})
+    assert r.returncode == 1
+    assert "cv.docx" in r.stdout and "old.doc" in r.stdout and "notes.rtf" in r.stdout
+
+
+def test_guard_passes_on_fixture_pdf(tmp_path):
+    r = run(tmp_path, {"tests/fixtures/sample.pdf": "%PDF-1.4 fake"})
+    assert r.returncode == 0, r.stdout
