@@ -60,3 +60,14 @@ def test_delete_removes(me):
 def test_unknown_id_is_value_error(me):
     with pytest.raises(ValueError):
         todos.toggle("nope")
+
+
+def test_todo_today_flag_must_be_a_real_bool(me):
+    from novi.features.today import api
+
+    todos.add("Call the recruiter")
+    tid = todos.list_all()[0]["id"]
+    for bad in ("false", "true", 0, 1, None):
+        with pytest.raises(ValueError):
+            api.todo_today({"id": tid, "today": bad})
+    assert todos.list_all()[0]["today"] is False

@@ -31,6 +31,13 @@ def _need(body, *keys):
     return body
 
 
+def _flag(value, name: str) -> bool:
+    # A JSON string such as "false" is truthy in Python, so only a real true/false is accepted.
+    if not isinstance(value, bool):
+        raise ValueError(f"{name} must be true or false")
+    return value
+
+
 def _payload() -> dict:
     today = date.today()
     defined = habits.defined()
@@ -71,7 +78,7 @@ def todo_move(body):
 @_guard
 def todo_today(body):
     b = _need(body, "id", "today")
-    todos.set_today(b["id"], b["today"])
+    todos.set_today(b["id"], _flag(b["today"], "today"))
     return _payload()
 
 
@@ -91,7 +98,7 @@ def habits_define(body):
 def habits_log(body):
     b = _need(body, "key", "done")
     day = b.get("date") or date.today().isoformat()
-    habits.log(day, b["key"], bool(b["done"]))
+    habits.log(day, b["key"], _flag(b["done"], "done"))
     return _payload()
 
 
