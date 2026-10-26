@@ -29,18 +29,24 @@ You write a resume and cover letter for one role from the person's tracker. Ever
    - `standard`: everything in `light`, and rewrite bullets so they use the role's language (for example "stakeholder reporting" instead of "weekly emails"), keeping the same facts and numbers.
    - `aggressive`: everything in `standard`, plus free rewording and framing aimed at the role's keywords and the goals in `search_goals`. Facts, numbers and tools still come only from the profile.
 
-4. **Write the drafts** as plain text into a scratch file in the scratchpad (not in the repo), one claim per line, with the locked fields in the same line format used by the checker:
+4. **Write the drafts** as plain text into a scratch file in the scratchpad (not in the repo). Start the file with one locked-field line per job and one per degree, in exactly this format, copied from the profile:
    ```
    EMPLOYER: Acme Corp | TITLE: Analyst | DATES: 2022-2024
    DEGREE: BS Computer Science
    ```
-   Then write the full resume text and cover letter text.
+   - One `EMPLOYER | TITLE | DATES` line per job, separated by `|`. Each value must match the profile exactly.
+   - One `DEGREE: ...` line per degree or certificate.
+   - Then the rest of the resume text and the cover letter text, one claim per line.
 
-5. **Run the checks.**
+5. **Run the checks.** Run the checker. Do not build the locked-field lists by hand: the CLI reads them from the profile itself.
    ```
    py -3 -X utf8 app/novi/claims.py <draft.txt> me/profile.md
    ```
-   This lists every unsupported number and tool (exit 1 if any). For the locked fields, run `claims.locked_fields_changed(doc_text, profile)` from `app/novi/claims.py` (import it with `sys.path` set to `app`), where `profile` is `{"employers": [...], "titles": [...], "degrees": [...], "dates": [...]}` taken from the profile. Any line it returns is a bug in the draft: fix the draft to match the profile, do not flag it.
+   (use `python3` on Mac). It runs both checks and prints one line per problem:
+   - `UNSUPPORTED: X` means a number, multiplier, tool or capitalised term in the draft is not in the profile.
+   - `LOCKED: <line>` means an EMPLOYER, TITLE, DATES or DEGREE value in the draft is not in the profile. A locked line is a bug in the draft: fix the draft to match the profile. Never change the profile to match the draft.
+
+   The command exits 1 if it prints anything, and 0 when the draft is clean. Fix `LOCKED` lines first, then handle `UNSUPPORTED` items in step 6.
 
 6. **Handle flagged claims.** Remove every flagged number, tool or skill from the drafts. Then ask the person about each flagged claim, one question per claim: "The profile does not mention X. Did you do this? Yes or no." Use `AskUserQuestion` if available, otherwise ask in plain text.
    - Only if they say yes: add the claim to the drafts, and offer to save it to `me/profile.md` marked `verified: yes` with the date. Do this only if they agree.

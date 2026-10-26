@@ -1,3 +1,7 @@
+import subprocess
+import sys
+from pathlib import Path
+
 from novi import claims
 
 PROFILE = """
@@ -107,3 +111,78 @@ def test_spring_flagged_when_profile_lacks_it():
 
 def test_own_name_in_document_not_flagged():
     assert claims.unsupported_claims("Alex Example, analyst at Acme Corp.", PROFILE) == []
+
+
+ALEX_PROFILE = Path(__file__).parent / "fixtures" / "alex_example" / "profile.md"
+REPO = Path(__file__).resolve().parents[1]
+
+
+def test_load_locks_reads_alex_fixture():
+    locks = claims.load_locks(ALEX_PROFILE.read_text(encoding="utf-8"))
+    assert set(locks) == {"employers", "titles", "degrees", "dates"}
+    assert locks["employers"] == ["Example Retail Co.", "Harbor Logistics Example"]
+    assert locks["titles"] == ["Data Assistant", "Sales Support Associate"]
+    assert locks["dates"] == ["March 2024 to present", "June 2022 to February 2024"]
+    assert "Associate of Arts" in locks["degrees"]
+    assert "Associate of Arts, Example Community College, 2022" in locks["degrees"]
+
+
+def test_load_locks_skips_projects_and_unverified_entries():
+    text = (
+        "# Alex\n"
+        "## Experience\n"
+        "### Analyst · Acme Corp · 2022 to 2024\n"
+        "## Projects\n"
+        "### Bike Share Trends · Python, pandas\n"
+        "## Education\n"
+        "BS Computer Science, State U, 2021 (verified: no)\n"
+        "## Claims not yet confirmed\n"
+        "- Trip count: about 2 million rows.\n"
+    )
+    locks = claims.load_locks(text)
+    assert locks["employers"] == ["Acme Corp"]
+    assert locks["titles"] == ["Analyst"]
+    assert locks["dates"] == ["2022 to 2024"]
+    assert locks["degrees"] == []
+
+
+def test_load_locks_empty_profile_gives_empty_lists():
+    assert claims.load_locks("") == {"employers": [], "titles": [], "degrees": [], "dates": []}
+
+
+def test_locked_fields_check_uses_load_locks_on_alex_fixture():
+    profile = ALEX_PROFILE.read_text(encoding="utf-8")
+    ok = "EMPLOYER: Example Retail Co. | TITLE: Data Assistant | DATES: March 2024 to present\n"
+    bad = "EMPLOYER: Globex | TITLE: Data Assistant | DATES: March 2024 to present\n"
+    assert claims.locked_fields_changed(ok, claims.load_locks(profile)) == []
+    assert claims.locked_fields_changed(bad, claims.load_locks(profile)) == [bad.strip()]
+
+
+def _run_cli(tmp_path, draft_text):
+    draft = tmp_path / "draft.txt"
+    draft.write_text(draft_text, encoding="utf-8")
+    return subprocess.run(
+        [sys.executable, str(REPO / "app" / "novi" / "claims.py"), str(draft), str(ALEX_PROFILE)],
+        capture_output=True, text=True, encoding="utf-8",
+    )
+
+
+def test_cli_passes_clean_draft(tmp_path):
+    draft = (
+        "EMPLOYER: Example Retail Co. | TITLE: Data Assistant | DATES: March 2024 to present\n"
+        "- Wrote SQL queries that cut weekly sales-report prep from 4 hours to 1 hour.\n"
+    )
+    r = _run_cli(tmp_path, draft)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_cli_fails_on_changed_employer_and_prints_it(tmp_path):
+    r = _run_cli(tmp_path, "EMPLOYER: Globex | TITLE: Data Assistant | DATES: March 2024 to present\n")
+    assert r.returncode == 1
+    assert "Globex" in r.stdout
+
+
+def test_cli_fails_on_unsupported_number_and_prints_it(tmp_path):
+    r = _run_cli(tmp_path, "- Cut sales-report prep by 90%.\n")
+    assert r.returncode == 1
+    assert "UNSUPPORTED" in r.stdout and "90%" in r.stdout

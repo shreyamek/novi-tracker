@@ -7,7 +7,11 @@ Deterministic on purpose: the /tailor command runs this on every draft. Stdlib o
 - locked_fields_changed: document lines (EMPLOYER / TITLE / DATES / DEGREE fields) whose
   values are not in the profile's employer, title, date and degree lists.
 
-CLI: py -3 -X utf8 app/novi/claims.py <draft.txt> <profile.md>   (exit 1 if anything is flagged)
+- load_locks: reads the employer, title, degree and date lists from a profile (templates/profile.md format).
+
+CLI: py -3 -X utf8 app/novi/claims.py <draft.txt> <profile.md>
+Runs both checks (unsupported_claims and locked_fields_changed with load_locks); prints each problem
+as UNSUPPORTED: or LOCKED: and exits 1 if there is any.
 """
 from __future__ import annotations
 
@@ -160,16 +164,64 @@ def locked_fields_changed(doc_text: str, profile: dict) -> list[str]:
     return changed
 
 
+_HEADING_SEP = "·"  # the middle dot between parts of a profile heading
+_VERIFIED_TAG = re.compile(r"\s*\(verified:\s*(yes|no)\)\s*$", re.IGNORECASE)
+
+
+def _add(values: list[str], value: str) -> None:
+    if value and value not in values:
+        values.append(value)
+
+
+def load_locks(profile_text: str) -> dict:
+    """Read the locked fields from a profile written in the templates/profile.md format.
+
+    - Under "## Experience", a heading "### Job title · Employer · Start to end" gives one title,
+      one employer and one date range.
+    - Under "## Education...", each line gives a degree: the full line, and the part before the first
+      comma (so "Associate of Arts, Example College, 2022" yields both forms).
+    - Lines or headings marked "(verified: no)" are skipped. Projects and other sections are not locked.
+    """
+    locks: dict[str, list[str]] = {"employers": [], "titles": [], "degrees": [], "dates": []}
+    section = ""
+    for raw in profile_text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            section = line[3:].strip().casefold()
+            continue
+        if line.startswith("### ") and section == "experience":
+            if re.search(r"\(verified:\s*no\)", line, re.IGNORECASE):
+                continue
+            parts = [p.strip() for p in line[4:].split(_HEADING_SEP)]
+            if len(parts) == 3 and all(parts):
+                title, employer, dates = parts
+                _add(locks["titles"], title)
+                _add(locks["employers"], employer)
+                _add(locks["dates"], dates)
+            continue
+        if section.startswith("education") and line and not line.startswith(("#", "<!--", "|")):
+            if line.startswith("- "):
+                line = line[2:].strip()
+            if re.search(r"\(verified:\s*no\)", line, re.IGNORECASE):
+                continue
+            text = _VERIFIED_TAG.sub("", line).strip()
+            if text:
+                _add(locks["degrees"], text)
+                _add(locks["degrees"], text.split(",")[0].strip())
+    return locks
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: claims.py <draft.txt> <profile.md>", file=sys.stderr)
         return 2
     doc = Path(argv[0]).read_text(encoding="utf-8")
     profile = Path(argv[1]).read_text(encoding="utf-8")
-    flagged = unsupported_claims(doc, profile)
-    for item in flagged:
-        print(f"UNSUPPORTED: {item}")
-    return 1 if flagged else 0
+    problems = [f"UNSUPPORTED: {item}" for item in unsupported_claims(doc, profile)]
+    problems += [f"LOCKED: {line}" for line in locked_fields_changed(doc, load_locks(profile))]
+    for problem in problems:
+        print(problem)
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":
